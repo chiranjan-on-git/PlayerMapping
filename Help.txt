@@ -1,0 +1,18 @@
+PROJECT STRUCTURE : 
+
+player_mapping_project/
+├── data/
+│   ├── broadcast.mp4
+│   └── tacticam.mp4
+├── models/
+│   └── best.pt  (your downloaded YOLO model)
+├── output/      # For saving results, videos, etc.
+├── src/         # Your source code
+│   ├── __init__.py
+│   ├── detector.py
+│   ├── tracker.py
+│   ├── mapper.py
+│   └── utils.py
+├── main.py      # Main script to run the whole pipeline
+├── requirements.txt
+└── README.mdvenv\Scripts\activate
