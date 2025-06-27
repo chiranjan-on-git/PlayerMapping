@@ -1,5 +1,3 @@
-# Updated main.py with frame-aware tracking
-
 import cv2
 import numpy as np
 from src.detector import PlayerDetector
