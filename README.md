@@ -7,7 +7,7 @@ This project maps football players across two different video feeds—a wide-ang
 ![PlayerMapping](https://github.com/user-attachments/assets/7c7cc6de-154e-4ddf-827c-af074377f7a0)
 A sample output showing the final mapping. Players in both views share the same global ID, presented in a clean, non-distorted side-by-side view.
 
-## 📄 Technical Report
+## Technical Report
 
 You can view the full technical report here:
 
