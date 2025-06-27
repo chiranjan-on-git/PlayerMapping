@@ -1,5 +1,3 @@
-# src/mapper.py
-
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 import cv2
@@ -11,21 +9,21 @@ class PlayerMapper:
         self.distance_threshold = distance_threshold
         self.weight_spatial = weight_spatial
         self.weight_color = weight_color
-        self.id_persistence_frames = id_persistence_frames  # Frames to remember lost players
+        self.id_persistence_frames = id_persistence_frames  # remembering lost players
         self.color_history_size = color_history_size
 
-        # Dictionaries to link temporary tracker IDs to a final, permanent ID
+        # linking temporary tracker IDs to a final, permanent ID
         self.tacticam_to_final_id = {}
         self.broadcast_to_final_id = {}
         self.next_final_id = 0
         
-        # Enhanced tracking for ID consistency
+        # making ID consistent with better tracking
         self.final_id_last_seen = {}  # final_id -> frame_count
-        self.final_id_positions = {}  # final_id -> {'tacticam': (x,y), 'broadcast': (x,y)}
-        self.final_id_color_history = {}  # final_id -> {'tacticam': [hist1, hist2, ...], 'broadcast': [...]}
+        self.final_id_positions = {}  # final_id -> {'tacticam' and 'broadcast': (x,y)}
+        self.final_id_color_history = {}  # final_id -> {'tacticam': [hist1...], 'broadcast': [...]}
         self.frame_count = 0
         
-        # For handling disappeared players
+        # for lost players
         self.lost_tacticam_ids = {}  # temp_id -> {'final_id': x, 'frames_lost': y, 'last_pos': (x,y)}
         self.lost_broadcast_ids = {}
 
@@ -34,31 +32,31 @@ class PlayerMapper:
         return int((x1 + x2) / 2), int((y1 + y2) / 2)
 
     def _get_average_histogram(self, hist_list):
-        """Calculate average histogram from a list of histograms"""
+        # calculating average histogram
         if not hist_list:
             return None
         return np.mean(hist_list, axis=0)
 
     def _update_color_history(self, final_id, view, histogram):
-        """Update color history for a player"""
+        # updating color history for player
         if final_id not in self.final_id_color_history:
             self.final_id_color_history[final_id] = {'tacticam': [], 'broadcast': []}
         
         history = self.final_id_color_history[final_id][view]
         history.append(histogram)
         
-        # Keep only recent history
+        # for keeping recent history
         if len(history) > self.color_history_size:
             history.pop(0)
 
     def _calculate_enhanced_cost(self, t_centers, t_histograms, transformed_b_centers, b_histograms):
-        """Calculate cost matrix with enhanced features"""
+        #Calculating cost matrix with enchanced features
         num_t, num_b = len(t_centers), len(transformed_b_centers)
         
-        # Spatial distance
+        # spatial dist
         spatial_dist = np.linalg.norm(t_centers[:, np.newaxis] - transformed_b_centers, axis=2)
         
-        # Color distance
+        # color dist
         color_dist = np.zeros((num_t, num_b))
         for i in range(num_t):
             for j in range(num_b):
@@ -66,28 +64,28 @@ class PlayerMapper:
                 correlation = cv2.compareHist(t_histograms[i], b_histograms[j], cv2.HISTCMP_CORREL)
                 color_dist[i, j] = 1 - max(0, correlation)  # Convert to distance (lower is better)
         
-        # Normalize spatial distance
+        # normalizing spatial dist
         norm_spatial_dist = np.clip(spatial_dist / self.distance_threshold, 0, 2)
         
-        # Combine costs
+        # combining costs
         cost_matrix = (self.weight_spatial * norm_spatial_dist) + (self.weight_color * color_dist)
         
         return cost_matrix, spatial_dist
 
     def _try_reassign_lost_players(self, t_ids, t_centers, t_histograms, b_ids, transformed_b_centers, b_histograms):
-        """Try to reassign players that were temporarily lost"""
+        #reassigning players that were temporarily lost
         reassignments = {'tacticam': {}, 'broadcast': {}}
         
-        # Check lost tacticam players
+        # check lost tacticam players
         for temp_id, lost_info in list(self.lost_tacticam_ids.items()):
             if temp_id in t_ids:
                 idx = t_ids.index(temp_id)
                 current_pos = t_centers[idx]
                 
-                # Check if position is reasonable compared to last known position
+                # check if position is reasonable compared to last known position
                 pos_diff = np.linalg.norm(np.array(current_pos) - np.array(lost_info['last_pos']))
                 if pos_diff < self.distance_threshold * 2:  # Allow some movement
-                    # Check color similarity with history
+                    # check color similarity with history
                     final_id = lost_info['final_id']
                     if final_id in self.final_id_color_history:
                         avg_hist = self._get_average_histogram(
@@ -99,7 +97,7 @@ class PlayerMapper:
                                 reassignments['tacticam'][temp_id] = final_id
                                 del self.lost_tacticam_ids[temp_id]
         
-        # Similar logic for broadcast players
+        # similar logic for broadcast players
         for temp_id, lost_info in list(self.lost_broadcast_ids.items()):
             if temp_id in b_ids:
                 idx = b_ids.index(temp_id)
@@ -121,8 +119,8 @@ class PlayerMapper:
         return reassignments
 
     def _cleanup_old_data(self):
-        """Clean up data for players not seen for a long time"""
-        # Remove old lost players
+        # clean up data for players not seen for a long time
+        # remove old lost players
         for temp_id in list(self.lost_tacticam_ids.keys()):
             if self.lost_tacticam_ids[temp_id]['frames_lost'] > self.id_persistence_frames:
                 del self.lost_tacticam_ids[temp_id]
@@ -131,7 +129,7 @@ class PlayerMapper:
             if self.lost_broadcast_ids[temp_id]['frames_lost'] > self.id_persistence_frames:
                 del self.lost_broadcast_ids[temp_id]
         
-        # Update frames lost counter
+        # update frames lost counter
         for lost_info in self.lost_tacticam_ids.values():
             lost_info['frames_lost'] += 1
         for lost_info in self.lost_broadcast_ids.values():
@@ -144,7 +142,7 @@ class PlayerMapper:
             self._cleanup_old_data()
             return self.tacticam_to_final_id, self.broadcast_to_final_id
 
-        # Extract data
+        # extract data
         t_ids = [p[0] for p in tacticam_players]
         t_bboxes = [p[1] for p in tacticam_players]
         t_centers = np.array([self._get_center(bbox) for bbox in t_bboxes])
@@ -158,12 +156,12 @@ class PlayerMapper:
         
         transformed_b_centers = cv2.perspectiveTransform(b_positions, homography_matrix).reshape(-1, 2)
         
-        # Try to reassign lost players first
+        # try to reassign lost players first
         reassignments = self._try_reassign_lost_players(
             t_ids, t_centers, t_histograms, b_ids, transformed_b_centers, b_histograms
         )
         
-        # Apply reassignments
+        # apply reassignments
         for temp_id, final_id in reassignments['tacticam'].items():
             self.tacticam_to_final_id[temp_id] = final_id
             self.final_id_last_seen[final_id] = self.frame_count
@@ -172,15 +170,15 @@ class PlayerMapper:
             self.broadcast_to_final_id[temp_id] = final_id
             self.final_id_last_seen[final_id] = self.frame_count
 
-        # Calculate cost matrix for remaining assignments
+        # calculate cost matrix for remaining assignments
         cost_matrix, spatial_dist = self._calculate_enhanced_cost(
             t_centers, t_histograms, transformed_b_centers, b_histograms
         )
         
-        # Hungarian algorithm for optimal assignment
+        # hungarian algorithm for optimal assignment
         t_indices, b_indices = linear_sum_assignment(cost_matrix)
         
-        # Process assignments
+        # process assignments
         current_assignments = set()
         
         for t_idx, b_idx in zip(t_indices, b_indices):
@@ -190,20 +188,20 @@ class PlayerMapper:
             t_id = t_ids[t_idx]
             b_id = b_ids[b_idx]
             
-            # Skip if already assigned in this frame
+            # skip if already assigned in this frame
             if (t_id, b_id) in current_assignments:
                 continue
             
-            # Check for existing final IDs
+            # check for existing final IDs
             t_final_id = self.tacticam_to_final_id.get(t_id)
             b_final_id = self.broadcast_to_final_id.get(b_id)
             
             if t_final_id is not None and b_final_id is not None:
                 if t_final_id == b_final_id:
-                    # Perfect match - same final ID
+                    #perfect match - same final ID
                     final_id = t_final_id
                 else:
-                    # Conflict - choose the more recently seen ID
+                    # conflict - choose the more recently seen ID
                     t_last_seen = self.final_id_last_seen.get(t_final_id, 0)
                     b_last_seen = self.final_id_last_seen.get(b_final_id, 0)
                     
@@ -220,26 +218,26 @@ class PlayerMapper:
                 final_id = b_final_id
                 self.tacticam_to_final_id[t_id] = final_id
             else:
-                # New player pair
+                # new player pair
                 final_id = self.next_final_id
                 self.next_final_id += 1
                 self.tacticam_to_final_id[t_id] = final_id
                 self.broadcast_to_final_id[b_id] = final_id
             
-            # Update tracking information
+            # ipdate tracking information
             self.final_id_last_seen[final_id] = self.frame_count
             self.final_id_positions[final_id] = {
                 'tacticam': tuple(t_centers[t_idx]),
                 'broadcast': tuple(transformed_b_centers[b_idx])
             }
             
-            # Update color history
+            # update color history
             self._update_color_history(final_id, 'tacticam', t_histograms[t_idx])
             self._update_color_history(final_id, 'broadcast', b_histograms[b_idx])
             
             current_assignments.add((t_id, b_id))
         
-        # Handle players that disappeared (for potential reassignment later)
+        # handle players that disappeared (for potential reassignment later)
         for temp_id in list(self.tacticam_to_final_id.keys()):
             if temp_id not in t_ids:
                 final_id = self.tacticam_to_final_id[temp_id]
