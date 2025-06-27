@@ -7,6 +7,12 @@ This project maps football players across two different video feeds—a wide-ang
 ![PlayerMapping](https://github.com/user-attachments/assets/7c7cc6de-154e-4ddf-827c-af074377f7a0)
 A sample output showing the final mapping. Players in both views share the same global ID, presented in a clean, non-distorted side-by-side view.
 
+## 📄 Technical Report
+
+You can view the full technical report here:
+
+[**Cross-Camera Player Mapping – A Technical Report (PDF)**](Cross-Camera%20Player%20Mapping-%20A%20Technical%20Report.pdf)
+
 ## Key Features
 - **Hybrid Matching Algorithm**: Employs a sophisticated cost function that combines both spatial distance (using homography) and visual appearance (using HSV color histograms) for highly accurate player matching.
 - **Advanced Temporal Re-identification**: The system maintains a memory of players who are temporarily lost or occluded. It uses a history of their position and color signature to robustly re-assign the correct ID when they reappear.
