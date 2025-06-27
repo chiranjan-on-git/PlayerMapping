@@ -1,6 +1,6 @@
 PROJECT STRUCTURE : 
 
-player_mapping_project/
+PlayerMapping/
 ├── data/
 │   ├── broadcast.mp4
 │   └── tacticam.mp4
