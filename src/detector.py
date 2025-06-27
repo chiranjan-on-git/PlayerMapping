@@ -1,5 +1,3 @@
-# src/detector.py
-
 from ultralytics import YOLO
 
 class PlayerDetector:
