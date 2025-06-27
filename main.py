@@ -1,5 +1,3 @@
-# Updated main.py with frame-aware tracking
-
 import cv2
 import numpy as np
 from src.detector import PlayerDetector
@@ -7,17 +5,17 @@ from src.tracker import Tracker
 from src.mapper import PlayerMapper
 from src.utils import resize_and_pad
 
-# --- 1. CONFIGURATION ---
+#1. Configuration
 MODEL_PATH = 'models/best.pt'
 TACTICAM_VIDEO_PATH = 'data/tacticam.mp4'
 BROADCAST_VIDEO_PATH = 'data/broadcast.mp4'
 HOMOGRAPHY_PATH = 'homography_matrix.npy'
-CONFIDENCE_THRESHOLD = 0.7  # Increased from 0.5
+CONFIDENCE_THRESHOLD = 0.7
 
 FRAME_OFFSET = 59
 
 def filter_overlapping_detections(detections, iou_threshold=0.3):
-    """Remove redundant detections that overlap too much"""
+    #Remove redundant detections that overlap too much
     if not detections:
         return []
     
@@ -56,7 +54,7 @@ def filter_overlapping_detections(detections, iou_threshold=0.3):
     return filtered_detections
 
 def draw_players_simple(frame, tracked_players, id_map, color=(0, 0, 255)):
-    """Simple non-overlapping label drawing"""
+    # Simple non-overlapping label drawing
     valid_players = []
     for track_id, bbox in tracked_players:
         final_id = id_map.get(track_id)
@@ -198,7 +196,7 @@ def main():
         cv2.putText(combined_frame, f"T: {len(t_tracked_players)} | B: {len(b_tracked_players)}", 
                    (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
         
-        cv2.imshow("Player Mapping - Fixed", combined_frame)
+        cv2.imshow("Player Mapping (press q to quit)", combined_frame)
 
         key = cv2.waitKey(1) & 0xFF
         if key == ord('q'):

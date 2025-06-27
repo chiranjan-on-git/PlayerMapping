@@ -1,5 +1,3 @@
-# Enhanced tracker.py to handle close players better
-
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 import cv2
@@ -13,7 +11,7 @@ class Tracker:
         self.min_box_area = min_box_area
 
     def _get_color_histogram(self, frame, bbox):
-        """Get color histogram for a bounding box region"""
+        # Get color histogram for a bounding box region
         try:
             x1, y1, x2, y2 = map(int, bbox)
             # Ensure coordinates are within frame bounds
@@ -46,7 +44,7 @@ class Tracker:
         return (x2 - x1) * (y2 - y1)
 
     def _calculate_combined_distance(self, bbox1, hist1, bbox2, hist2):
-        """Calculate combined spatial and color distance"""
+        # Calculate combined spatial and color distance
         # Spatial distance between centers
         center1 = self._calculate_center(bbox1)
         center2 = self._calculate_center(bbox2)

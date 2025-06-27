@@ -4,17 +4,6 @@ import cv2
 import numpy as np
 
 def get_mouse_click_coords(video_path, frame_number=0, max_display_width=1280):
-    """
-    Opens a specific frame of a video, resizes if needed, and prints mouse click coordinates.
-    
-    Args:
-        video_path (str): Path to video file.
-        frame_number (int): Frame to extract and display.
-        max_display_width (int): Max display width to ensure full visibility.
-    
-    Returns:
-        List of (x, y) coordinates clicked by user (in original frame resolution).
-    """
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         print(f"Error: Cannot open video {video_path}")
@@ -71,14 +60,7 @@ def get_mouse_click_coords(video_path, frame_number=0, max_display_width=1280):
 
 
 def calculate_and_save_homography(src_points, dst_points, save_path="homography_matrix.npy"):
-    """
-    Calculates the homography matrix and saves it to a .npy file.
 
-    Args:
-        src_points (list of tuples): Points from the source view (e.g., broadcast).
-        dst_points (list of tuples): Corresponding points in the destination view (e.g., tacticam).
-        save_path (str): Path to save the matrix.
-    """
     src_pts = np.array(src_points, dtype="float32")
     dst_pts = np.array(dst_points, dtype="float32")
 
@@ -97,19 +79,7 @@ def calculate_and_save_homography(src_points, dst_points, save_path="homography_
         print("Error: Failed to compute homography. Check point quality.")
 
 def resize_and_pad(frame, target_width, target_height, background_color=(0, 0, 0)):
-    """
-    Resizes a frame to fit within target dimensions while maintaining aspect ratio,
-    and pads the remaining area with a background color.
-    
-    Args:
-        frame: The image frame to resize and pad.
-        target_width (int): The width of the final output panel.
-        target_height (int): The height of the final output panel.
-        background_color (tuple): The (B, G, R) color for the padding.
-        
-    Returns:
-        The resized and padded frame.
-    """
+
     original_h, original_w, _ = frame.shape
     
     # Calculate the ratio to fit inside the target dimensions
@@ -135,9 +105,9 @@ def resize_and_pad(frame, target_width, target_height, background_color=(0, 0, 0
     return padded_frame
 
 def get_color_histogram(frame, bbox):
-    """
-    Calculates a 3D color histogram for the region defined by the bounding box.
-    """
+    
+    # Calculates a 3D color histogram for the region defined by the bounding box.
+    
     x1, y1, x2, y2 = map(int, bbox)
     # Get the player region of interest (ROI)
     roi = frame[y1:y2, x1:x2]
@@ -151,19 +121,8 @@ def get_color_histogram(frame, bbox):
     cv2.normalize(hist, hist, 0, 255, cv2.NORM_MINMAX)
     return hist.flatten()
 
-# Add this function to your main.py or utils.py
-
 def filter_overlapping_detections(detections, iou_threshold=0.3):
-    """
-    Remove redundant detections that overlap too much with higher confidence detections.
-    
-    Args:
-        detections: List of [x1, y1, x2, y2, confidence, class_id]
-        iou_threshold: IoU threshold for considering boxes as overlapping
-    
-    Returns:
-        Filtered list of detections
-    """
+
     if not detections:
         return []
     
