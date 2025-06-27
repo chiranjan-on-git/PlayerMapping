@@ -133,3 +133,77 @@ def resize_and_pad(frame, target_width, target_height, background_color=(0, 0, 0
     padded_frame[y_offset:y_offset+new_h, x_offset:x_offset+new_w] = resized_frame
     
     return padded_frame
+
+def get_color_histogram(frame, bbox):
+    """
+    Calculates a 3D color histogram for the region defined by the bounding box.
+    """
+    x1, y1, x2, y2 = map(int, bbox)
+    # Get the player region of interest (ROI)
+    roi = frame[y1:y2, x1:x2]
+    
+    # Calculate histogram in the HSV color space (often better for color matching)
+    hsv_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+    # Use 32 bins for hue, 32 for saturation, 32 for value
+    hist = cv2.calcHist([hsv_roi], [0, 1, 2], None, [8, 8, 8], [0, 180, 0, 256, 0, 256])
+    
+    # Normalize the histogram to be comparable
+    cv2.normalize(hist, hist, 0, 255, cv2.NORM_MINMAX)
+    return hist.flatten()
+
+# Add this function to your main.py or utils.py
+
+def filter_overlapping_detections(detections, iou_threshold=0.3):
+    """
+    Remove redundant detections that overlap too much with higher confidence detections.
+    
+    Args:
+        detections: List of [x1, y1, x2, y2, confidence, class_id]
+        iou_threshold: IoU threshold for considering boxes as overlapping
+    
+    Returns:
+        Filtered list of detections
+    """
+    if not detections:
+        return []
+    
+    # Sort by confidence (highest first)
+    detections_sorted = sorted(detections, key=lambda x: x[4], reverse=True)
+    
+    def calculate_iou(box1, box2):
+        x1_1, y1_1, x2_1, y2_1 = box1[:4]
+        x1_2, y1_2, x2_2, y2_2 = box2[:4]
+        
+        # Calculate intersection
+        x1_i = max(x1_1, x1_2)
+        y1_i = max(y1_1, y1_2)
+        x2_i = min(x2_1, x2_2)
+        y2_i = min(y2_1, y2_2)
+        
+        if x2_i <= x1_i or y2_i <= y1_i:
+            return 0.0
+        
+        intersection = (x2_i - x1_i) * (y2_i - y1_i)
+        
+        # Calculate union
+        area1 = (x2_1 - x1_1) * (y2_1 - y1_1)
+        area2 = (x2_2 - x1_2) * (y2_2 - y1_2)
+        union = area1 + area2 - intersection
+        
+        return intersection / union if union > 0 else 0.0
+    
+    filtered_detections = []
+    
+    for current_detection in detections_sorted:
+        # Check if this detection overlaps significantly with any already selected detection
+        should_keep = True
+        for kept_detection in filtered_detections:
+            iou = calculate_iou(current_detection, kept_detection)
+            if iou > iou_threshold:
+                should_keep = False
+                break
+        
+        if should_keep:
+            filtered_detections.append(current_detection)
+    
+    return filtered_detections
